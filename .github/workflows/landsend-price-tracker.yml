@@ -55,4 +55,5 @@ jobs:
           git config user.email github-actions@github.com
           git add landsend_prices.db
           git commit -m "Update price data" || echo "No changes to commit"
+          git pull --rebase  # Pull latest changes and reapply local changes
           git push
