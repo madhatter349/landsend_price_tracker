@@ -3,9 +3,11 @@ import sqlite3
 from datetime import datetime
 import json
 
-# API URL
+# API URL and email endpoint
 API_URL = "https://www.landsend.com/le-api/pub/product-lookup/product?productId=368990"
+EMAIL_API_URL = "https://www.cinotify.cc/api/notify"  # Replace with your email service endpoint
 DB_NAME = 'landsend_prices.db'
+EMAIL_RECIPIENT = "madhatter349@gmail.com"
 
 def log_debug(message):
     with open('debug.log', 'a') as f:
@@ -97,28 +99,25 @@ def update_database(skus):
     return new_posts, updated_posts
 
 def send_email(updated_posts):
-    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    subject = "Lands' End Price Tracker Report"
+    if updated_posts:
+        body = f"<h2>Price Changes Detected:</h2><ul>"
+        for post in updated_posts:
+            body += f"<li>Style {post['styleNumber']} ({post['sizeCode']} - {post['colorCode']}): Old Price ${post['oldPromotionalPrice']} → New Price ${post['newPromotionalPrice']}</li>"
+        body += "</ul>"
+    else:
+        body = "<h2>No price changes detected.</h2>"
 
-    for post in updated_posts:
-        body_content = f"""
-        <h2>Price Change Detected</h2>
-        <p>Details:</p>
-        <ul>
-            <li>Style Number: {post['styleNumber']}</li>
-            <li>Size: {post['sizeCode']}</li>
-            <li>Color: {post['colorCode']}</li>
-            <li>Old Promotional Price: ${post['oldPromotionalPrice']}</li>
-            <li>New Promotional Price: ${post['newPromotionalPrice']}</li>
-        </ul>
-        """
-        data = {
-            'to': 'madhatter349@gmail.com',
-            'subject': f"Price Change: Style {post['styleNumber']}",
-            'body': body_content,
-            'type': 'text/html'
-        }
-        response = requests.post("https://www.cinotify.cc/api/notify", headers=headers, data=data)
-        log_debug(f"Email response: {response.status_code}, {response.text}")
+    data = {
+        'to': EMAIL_RECIPIENT,
+        'subject': subject,
+        'body': body,
+        'type': 'text/html'
+    }
+
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    response = requests.post(EMAIL_API_URL, headers=headers, data=data)
+    log_debug(f"Email response: {response.status_code}, {response.text}")
 
 def main():
     log_debug("Script started")
@@ -127,8 +126,8 @@ def main():
     skus = fetch_product_data()
     new_posts, updated_posts = update_database(skus)
     
-    if updated_posts:
-        send_email(updated_posts)
+    # Send email summary for every run
+    send_email(updated_posts)
     
     log_debug("Script finished")
 
