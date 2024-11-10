@@ -99,15 +99,40 @@ def update_database(skus):
     return new_posts, updated_posts
 
 def send_email(updated_posts):
-    subject = "Lands' End Price Tracker Report"
+    item_url = "https://www.landsend.com/products/mens-expedition-waterproof-down-parka/id_368990?attributes=11657"
+    subject_base = "Lands' End Price Tracker Report"
+    
     if updated_posts:
-        body = f"<h2>Price Changes Detected:</h2><ul>"
-        for post in updated_posts:
-            body += f"<li>Style {post['styleNumber']} ({post['sizeCode']} - {post['colorCode']}): Old Price ${post['oldPromotionalPrice']} → New Price ${post['newPromotionalPrice']}</li>"
-        body += "</ul>"
+        # Focus on the first updated post (assuming only one SKU is tracked)
+        post = updated_posts[0]
+        current_price = post['newPromotionalPrice']
+        old_price = post['oldPromotionalPrice']
+        
+        if current_price < old_price:
+            trend = "Price Dropped"
+        elif current_price > old_price:
+            trend = "Price Increased"
+        else:
+            trend = "Price Unchanged"
+        
+        subject = f"{subject_base}: {trend} to ${current_price:.2f}"
+        
+        body = f"""
+        <h2>{trend} Detected for Tracked Item</h2>
+        <p><strong>Style:</strong> {post['styleNumber']}<br>
+        <strong>Size:</strong> {post['sizeCode']}<br>
+        <strong>Color:</strong> {post['colorCode']}</p>
+        <p><strong>Old Promotional Price:</strong> ${old_price:.2f}<br>
+        <strong>New Promotional Price:</strong> ${current_price:.2f}</p>
+        <p>You can view the product <a href="{item_url}">here</a>.</p>
+        """
     else:
-        body = "<h2>No price changes detected.</h2>"
-
+        subject = f"{subject_base}: No Changes Detected"
+        body = f"""
+        <h2>No Price Changes Detected for Tracked Item</h2>
+        <p>Price remains unchanged. You can view the product <a href="{item_url}">here</a>.</p>
+        """
+    
     data = {
         'to': EMAIL_RECIPIENT,
         'subject': subject,
