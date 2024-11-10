@@ -25,6 +25,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Price Tracker
+        env:
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         run: python landsend_price_tracker.py
 
       - name: Display debug log
@@ -38,11 +42,17 @@ jobs:
           name: debug-log
           path: debug.log
 
+      - name: Upload comparison result
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: comparison-result
+          path: comparison_result.json
+
       - name: Commit and push if there are changes
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add landsend_prices.db
           git commit -m "Update price data" || echo "No changes to commit"
-          git pull --rebase  # Pull and reapply changes
           git push
